@@ -25,7 +25,7 @@ import com.example.uthtodo.model.TaskItem
 import com.example.uthtodo.model.TaskPriority
 import com.example.uthtodo.viewmodel.TodoViewModel
 
-// ================== 1. MÀN HÌNH TRANG CHỦ (HOME SCREEN) ==================
+//  1. MÀN HÌNH TRANG CHỦ (HOME SCREEN)
 @Composable
 fun HomeScreen(viewModel: TodoViewModel) {
     val isDark = viewModel.isDarkTheme()
@@ -35,8 +35,10 @@ fun HomeScreen(viewModel: TodoViewModel) {
     val str = viewModel.strings
     val scale = viewModel.fontSizeScale
 
-    val totalCount = viewModel.taskList.size
-    val doneCount = viewModel.taskList.count { it.isCompleted }
+    // Trang chủ chỉ hiện các việc của hôm nay
+    val todayTasks = viewModel.taskList.filter { it.date == "Hôm nay" }
+    val totalCount = todayTasks.size
+    val doneCount = todayTasks.count { it.isCompleted }
     val progressRatio = if (totalCount > 0) doneCount.toFloat() / totalCount.toFloat() else 0f
     val percentNumber = (progressRatio * 100).toInt()
 
@@ -149,14 +151,15 @@ fun HomeScreen(viewModel: TodoViewModel) {
             }
         }
 
-        items(viewModel.taskList) { task ->
+        items(todayTasks) { task ->
             TaskCardItem(
                 task = task,
                 viewModel = viewModel,
                 cardColor = cardColor,
                 textColor = textColor,
                 onCheckClick = { viewModel.toggleTaskCompleted(task.id) },
-                onItemClick = { viewModel.openTaskDetail(task.id) }
+                onItemClick = { viewModel.openTaskDetail(task.id) },
+                showDate = false   // Trang chủ chỉ hiện giờ, giống thiết kế
             )
         }
     }
@@ -169,9 +172,11 @@ fun TaskCardItem(
     cardColor: Color,
     textColor: Color,
     onCheckClick: () -> Unit,
-    onItemClick: () -> Unit
+    onItemClick: () -> Unit,
+    showDate: Boolean = true
 ) {
     val scale = viewModel.fontSizeScale
+    val isDark = viewModel.isDarkTheme()
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { onItemClick() },
         shape = RoundedCornerShape(16.dp),
@@ -197,17 +202,21 @@ fun TaskCardItem(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(color = task.category.badgeColor, shape = RoundedCornerShape(6.dp)) {
+                    Surface(color = task.category.badgeBg(isDark), shape = RoundedCornerShape(6.dp)) {
                         Text(
                             text = task.category.getName(viewModel.appLanguage),
-                            color = task.category.textColor,
+                            color = task.category.badgeText(isDark),
                             fontSize = (11 * scale).sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("${task.date}, ${task.time}", fontSize = (12 * scale).sp, color = Color.Gray)
+                    Text(
+                        text = if (showDate) "${task.date}, ${task.time}" else task.time,
+                        fontSize = (12 * scale).sp,
+                        color = Color.Gray
+                    )
                 }
             }
             if (task.priority == TaskPriority.HIGH && !task.isCompleted) {
@@ -227,7 +236,7 @@ fun TaskCardItem(
     }
 }
 
-// ================== 2. MÀN HÌNH DANH SÁCH (TASK LIST SCREEN) ==================
+//  2. MÀN HÌNH DANH SÁCH (TASK LIST SCREEN)
 @Composable
 fun TaskListScreen(viewModel: TodoViewModel) {
     val isDark = viewModel.isDarkTheme()
@@ -248,7 +257,7 @@ fun TaskListScreen(viewModel: TodoViewModel) {
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                 Text(str.navList, fontSize = (26 * scale).sp, fontWeight = FontWeight.Bold, color = textColor)
-                Text("${uncompletedTasks.size} ${str.remainingTasks}", fontSize = (13 * scale).sp, color = Color.Gray)
+                Text("${uncompletedTasks.size} ${str.unfinishedTasks}", fontSize = (13 * scale).sp, color = Color.Gray)
             }
         }
 
@@ -264,6 +273,8 @@ fun TaskListScreen(viewModel: TodoViewModel) {
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = cardColor,
                     unfocusedContainerColor = cardColor,
+                    focusedTextColor = textColor,
+                    unfocusedTextColor = textColor,
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent
                 )
@@ -272,9 +283,9 @@ fun TaskListScreen(viewModel: TodoViewModel) {
 
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                FilterChipItem(str.filterAll, viewModel.selectedFilter == null) { viewModel.selectedFilter = null }
-                FilterChipItem(TaskCategory.STUDY.getName(viewModel.appLanguage), viewModel.selectedFilter == TaskCategory.STUDY) { viewModel.selectedFilter = TaskCategory.STUDY }
-                FilterChipItem(TaskCategory.LIFE.getName(viewModel.appLanguage), viewModel.selectedFilter == TaskCategory.LIFE) { viewModel.selectedFilter = TaskCategory.LIFE }
+                FilterChipItem(str.filterAll, viewModel.selectedFilter == null, isDark) { viewModel.selectedFilter = null }
+                FilterChipItem(TaskCategory.STUDY.getName(viewModel.appLanguage), viewModel.selectedFilter == TaskCategory.STUDY, isDark) { viewModel.selectedFilter = TaskCategory.STUDY }
+                FilterChipItem(TaskCategory.LIFE.getName(viewModel.appLanguage), viewModel.selectedFilter == TaskCategory.LIFE, isDark) { viewModel.selectedFilter = TaskCategory.LIFE }
             }
         }
 
@@ -293,15 +304,28 @@ fun TaskListScreen(viewModel: TodoViewModel) {
 }
 
 @Composable
-fun FilterChipItem(label: String, isSelected: Boolean, onClick: () -> Unit) {
+fun FilterChipItem(label: String, isSelected: Boolean, isDark: Boolean, onClick: () -> Unit) {
+    // Sáng: chip chọn = đen, chưa chọn = trắng. Tối: chip chọn = trắng, chưa chọn = xám đậm.
+    val bg = when {
+        isSelected && isDark -> Color.White
+        isSelected -> Color(0xFF1A1A1A)
+        isDark -> Color(0xFF1E1E1E)
+        else -> Color.White
+    }
+    val fg = when {
+        isSelected && isDark -> Color.Black
+        isSelected -> Color.White
+        isDark -> Color.LightGray
+        else -> Color.DarkGray
+    }
     Surface(
         modifier = Modifier.clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
-        color = if (isSelected) Color(0xFF1A1A1A) else Color.White
+        color = bg
     ) {
         Text(
             text = label,
-            color = if (isSelected) Color.White else Color.DarkGray,
+            color = fg,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -309,7 +333,7 @@ fun FilterChipItem(label: String, isSelected: Boolean, onClick: () -> Unit) {
     }
 }
 
-// ================== 3. MÀN HÌNH THÔNG BÁO (TAB ICON THỨ 4) ==================
+// = 3. MÀN HÌNH THÔNG BÁO (TAB ICON THỨ 4)
 @Composable
 fun NotificationScreen(viewModel: TodoViewModel) {
     val isDark = viewModel.isDarkTheme()

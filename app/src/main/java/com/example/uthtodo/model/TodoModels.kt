@@ -20,14 +20,19 @@ enum class TaskCategory(
     private val nameVi: String,
     private val nameEn: String,
     val badgeColor: Color,
-    val textColor: Color
+    val textColor: Color,
+    val darkBadgeColor: Color,   // màu nền badge khi giao diện Tối
+    val darkTextColor: Color     // màu chữ badge khi giao diện Tối
 ) {
-    STUDY("Học tập", "Study", Color(0xFFE8F0FE), Color(0xFF2555FF)),
-    LIFE("Cuộc sống", "Life", Color(0xFFFEF0E6), Color(0xFFD96B27));
+    STUDY("Học tập", "Study", Color(0xFFE8F0FE), Color(0xFF2555FF), Color(0xFF1E2942), Color(0xFF6C8CFF)),
+    LIFE("Cuộc sống", "Life", Color(0xFFFEF0E6), Color(0xFFD96B27), Color(0xFF38261A), Color(0xFFF0904F));
 
     fun getName(lang: AppLanguage): String {
         return if (lang == AppLanguage.VI) nameVi else nameEn
     }
+
+    fun badgeBg(isDark: Boolean): Color = if (isDark) darkBadgeColor else badgeColor
+    fun badgeText(isDark: Boolean): Color = if (isDark) darkTextColor else textColor
 }
 
 // 4. Enum mức độ ưu tiên: Thấp, Vừa, Cao
@@ -112,8 +117,8 @@ class NotificationItem(
 
 // 10. Class Hồ sơ người dùng (Cập nhật linh hoạt khi kết nối Google)
 class UserProfile(
-    val fullName: String = "Minh Anh",
-    val email: String = "minhanh@gmail.com",
+    val fullName: String = "Minh Nhat",
+    val email: String = "minhNhat@gmail.com",
     val isGoogleLinked: Boolean = true,
     val completedCount: Int = 128,
     val streakDays: Int = 12,
@@ -155,6 +160,14 @@ class AppStrings(lang: AppLanguage) {
     val sectionTodo = if (isVi) "CẦN LÀM" else "TO DO"
     val sectionDone = if (isVi) "ĐÃ XONG" else "COMPLETED"
     val urgentBadge = if (isVi) "Gấp" else "Urgent"
+    val unfinishedTasks = if (isVi) "việc chưa xong" else "tasks to do"
+
+    // Chi tiết công việc
+    val markDone = if (isVi) "Đánh dấu hoàn thành" else "Mark as done"
+    val markUndone = if (isVi) "Đánh dấu chưa xong" else "Mark as not done"
+    val deleteTask = if (isVi) "Xóa công việc" else "Delete task"
+    fun priorityBadge(priorityName: String): String =
+        if (isVi) "Ưu tiên ${priorityName.lowercase()}" else "$priorityName priority"
 
     // Cài đặt
     val sectionAppearance = if (isVi) "GIAO DIỆN" else "APPEARANCE"
@@ -183,4 +196,7 @@ class AppStrings(lang: AppLanguage) {
     val syncData = if (isVi) "Đồng bộ dữ liệu" else "Sync Data"
     val privacyPolicy = if (isVi) "Quyền riêng tư" else "Privacy Policy"
     val logoutBtn = if (isVi) "Đăng xuất" else "Log Out"
+    val daysUnit = if (isVi) "ngày" else "days"
+    fun dayProgress(dayLabel: String, done: Int, total: Int): String =
+        if (isVi) "Ngày $dayLabel: Đã xong $done/$total công việc" else "$dayLabel: $done/$total tasks done"
 }

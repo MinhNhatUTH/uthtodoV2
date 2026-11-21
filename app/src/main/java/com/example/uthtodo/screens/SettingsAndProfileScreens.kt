@@ -23,9 +23,10 @@ import androidx.compose.ui.unit.sp
 import com.example.uthtodo.model.AppScreen
 import com.example.uthtodo.model.ThemeMode
 import com.example.uthtodo.model.UserProfile
+import com.example.uthtodo.ui.theme.AppColors
 import com.example.uthtodo.viewmodel.TodoViewModel
 
-// ================== 1. MÀN HÌNH CÀI ĐẶT (SETTINGS SCREEN) ==================
+//  1. MÀN HÌNH CÀI ĐẶT (SETTINGS SCREEN)
 @Composable
 fun SettingsScreen(viewModel: TodoViewModel) {
     val isDark = viewModel.isDarkTheme()
@@ -34,6 +35,7 @@ fun SettingsScreen(viewModel: TodoViewModel) {
     val textColor = if (isDark) Color.White else Color.Black
     val str = viewModel.strings
     val scale = viewModel.fontSizeScale
+    val colors = AppColors(isDark)
 
     val themeColors = listOf(
         Color(0xFF2555FF),
@@ -57,7 +59,7 @@ fun SettingsScreen(viewModel: TodoViewModel) {
                 Surface(
                     modifier = Modifier.size(42.dp).clickable { viewModel.navigateTo(AppScreen.PROFILE) },
                     shape = CircleShape,
-                    color = Color(0xFFE8F0FE)
+                    color = colors.avatar
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(viewModel.userProfile.getShortName(), color = viewModel.primaryColor, fontWeight = FontWeight.Bold)
@@ -258,18 +260,23 @@ fun SettingSwitchRowFull(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF34C759))
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = Color(0xFF34C759),
+                checkedThumbColor = Color.White,
+                checkedBorderColor = Color.Transparent
+            )
         )
     }
 }
 
-// ================== 2. MÀN HÌNH HỒ SƠ CÁ NHÂN (PROFILE SCREEN) ==================
+// 2. MÀN HÌNH HỒ SƠ CÁ NHÂN (PROFILE SCREEN)
 @Composable
 fun ProfileScreen(viewModel: TodoViewModel) {
     val profile = viewModel.userProfile
     val str = viewModel.strings
     val weekStats = viewModel.getCurrentWeekStats()
     val selectedDay = weekStats[viewModel.selectedDayIndex]
+    val colors = AppColors(viewModel.isDarkTheme())
 
     if (viewModel.showGoogleLoginDialog) {
         GoogleAccountPickerDialog(
@@ -280,7 +287,7 @@ fun ProfileScreen(viewModel: TodoViewModel) {
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().background(Color(0xFFF7F8FA)).padding(20.dp),
+        modifier = Modifier.fillMaxSize().background(colors.background).padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -311,7 +318,7 @@ fun ProfileScreen(viewModel: TodoViewModel) {
         item {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(contentAlignment = Alignment.BottomEnd) {
-                    Surface(modifier = Modifier.size(84.dp), shape = CircleShape, color = Color(0xFFE8F0FE)) {
+                    Surface(modifier = Modifier.size(84.dp), shape = CircleShape, color = colors.avatar) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(profile.getShortName(), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = viewModel.primaryColor)
                         }
@@ -356,9 +363,9 @@ fun ProfileScreen(viewModel: TodoViewModel) {
 
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatCardBox(Modifier.weight(1f), "${profile.completedCount}", str.statDone)
-                StatCardBox(Modifier.weight(1f), "${profile.streakDays} ngày", str.statStreak)
-                StatCardBox(Modifier.weight(1f), "${profile.onTimePercent}%", str.statOnTime)
+                StatCardBox(Modifier.weight(1f), "${profile.completedCount}", str.statDone, colors.card)
+                StatCardBox(Modifier.weight(1f), "${profile.streakDays} ${str.daysUnit}", str.statStreak, colors.card)
+                StatCardBox(Modifier.weight(1f), "${profile.onTimePercent}%", str.statOnTime, colors.card)
             }
         }
 
@@ -366,7 +373,7 @@ fun ProfileScreen(viewModel: TodoViewModel) {
             val totalWeekCompleted = weekStats.sumOf { it.completedTasks }
             val totalWeekAll = weekStats.sumOf { it.totalTasks }
 
-            Surface(shape = RoundedCornerShape(18.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(18.dp), color = colors.card, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -390,7 +397,7 @@ fun ProfileScreen(viewModel: TodoViewModel) {
 
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Ngày ${selectedDay.getLabel(viewModel.appLanguage)}: Đã xong ${selectedDay.completedTasks}/${selectedDay.totalTasks} công việc",
+                        text = str.dayProgress(selectedDay.getLabel(viewModel.appLanguage), selectedDay.completedTasks, selectedDay.totalTasks),
                         fontSize = 12.sp,
                         color = viewModel.primaryColor,
                         fontWeight = FontWeight.Medium
@@ -421,7 +428,7 @@ fun ProfileScreen(viewModel: TodoViewModel) {
                                             when {
                                                 isSelectedDay -> viewModel.primaryColor
                                                 i == 0 -> viewModel.primaryColor.copy(alpha = 0.35f)
-                                                else -> Color(0xFFE5E7EB)
+                                                else -> colors.inactiveBar
                                             }
                                         )
                                 )
@@ -430,7 +437,7 @@ fun ProfileScreen(viewModel: TodoViewModel) {
                                     text = dayStat.getLabel(viewModel.appLanguage),
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelectedDay) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelectedDay) Color.Black else Color.Gray
+                                    color = if (isSelectedDay) colors.text else Color.Gray
                                 )
                             }
                         }
@@ -440,7 +447,7 @@ fun ProfileScreen(viewModel: TodoViewModel) {
         }
 
         item {
-            Surface(shape = RoundedCornerShape(18.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(18.dp), color = colors.card, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable {
@@ -461,7 +468,7 @@ fun ProfileScreen(viewModel: TodoViewModel) {
                         Text(profile.lastSyncTime, fontSize = 13.sp, color = Color.Gray)
                     }
 
-                    HorizontalDivider(color = Color(0xFFF0F0F0))
+                    HorizontalDivider(color = colors.divider)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -488,7 +495,7 @@ fun ProfileScreen(viewModel: TodoViewModel) {
             Surface(
                 modifier = Modifier.fillMaxWidth().height(52.dp).clickable { viewModel.logout() },
                 shape = RoundedCornerShape(14.dp),
-                color = Color.White
+                color = colors.card
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -504,10 +511,10 @@ fun ProfileScreen(viewModel: TodoViewModel) {
 }
 
 @Composable
-fun StatCardBox(modifier: Modifier, valueText: String, labelText: String) {
-    Surface(modifier = modifier, shape = RoundedCornerShape(16.dp), color = Color.White) {
+fun StatCardBox(modifier: Modifier, valueText: String, labelText: String, cardColor: Color = Color.White) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(16.dp), color = cardColor) {
         Column(modifier = Modifier.padding(14.dp)) {
-            Text(valueText, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            Text(valueText, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(labelText, fontSize = 12.sp, color = Color.Gray)
         }

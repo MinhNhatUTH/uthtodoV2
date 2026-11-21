@@ -23,7 +23,7 @@ import com.example.uthtodo.model.AppScreen
 import com.example.uthtodo.viewmodel.TodoViewModel
 import kotlinx.coroutines.delay
 
-// ================== 1. MÀN HÌNH CHỜ (SPLASH SCREEN) ==================
+//  1. MÀN HÌNH CHỜ (SPLASH SCREEN)
 @Composable
 fun SplashScreen(viewModel: TodoViewModel) {
     LaunchedEffect(Unit) {
@@ -68,7 +68,7 @@ fun SplashScreen(viewModel: TodoViewModel) {
     }
 }
 
-// ================== 2. MÀN HÌNH ONBOARDING 3 BƯỚC ==================
+//  2. MÀN HÌNH ONBOARDING 3 BƯỚC
 @Composable
 fun OnboardingScreen(viewModel: TodoViewModel) {
     val step = viewModel.onboardingStep
@@ -174,7 +174,7 @@ fun OnboardingScreen(viewModel: TodoViewModel) {
     }
 }
 
-// ================== 3. MÀN HÌNH ĐĂNG NHẬP GOOGLE TƯƠNG TÁC THẬT ==================
+//  3. MÀN HÌNH ĐĂNG NHẬP GOOGLE
 @Composable
 fun LoginScreen(viewModel: TodoViewModel) {
     if (viewModel.showGoogleLoginDialog) {

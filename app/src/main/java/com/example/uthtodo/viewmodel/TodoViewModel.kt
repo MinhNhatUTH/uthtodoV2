@@ -12,7 +12,7 @@ import com.example.uthtodo.model.*
 
 class TodoViewModel : ViewModel() {
 
-    // ================== 1. QUẢN LÝ LUỒNG MÀN HÌNH ==================
+    //  1. QUẢN LÝ LUỒNG MÀN HÌNH
     var currentScreen by mutableStateOf(AppScreen.SPLASH)
     var onboardingStep by mutableIntStateOf(0)
     var selectedTaskId by mutableIntStateOf(1)
@@ -26,15 +26,27 @@ class TodoViewModel : ViewModel() {
         selectedTaskId = taskId
         currentScreen = AppScreen.TASK_DETAIL
     }
+    fun goBack() {
+        currentScreen = when (currentScreen) {
+            AppScreen.ADD_TASK -> AppScreen.HOME
+            AppScreen.TASK_DETAIL -> AppScreen.TASK_LIST
+            AppScreen.PROFILE -> AppScreen.SETTINGS
+            AppScreen.LOGIN -> AppScreen.ONBOARDING
+            AppScreen.TASK_LIST, AppScreen.NOTIFICATIONS, AppScreen.SETTINGS -> AppScreen.HOME
+            else -> currentScreen
+        }
+    }
 
-    // ================== 2. QUẢN LÝ CÀI ĐẶT, NGÔN NGỮ & GIAO DIỆN ==================
+    // 2. QUẢN LÝ CÀI ĐẶT, NGÔN NGỮ & GIAO DIỆN
     var themeMode by mutableStateOf(ThemeMode.LIGHT)
     var primaryColor by mutableStateOf(Color(0xFF2555FF))
     var fontSizeScale by mutableFloatStateOf(1.0f)
     var appLanguage by mutableStateOf(AppLanguage.VI)
 
+    private val viStrings = AppStrings(AppLanguage.VI)
+    private val enStrings = AppStrings(AppLanguage.EN)
     val strings: AppStrings
-        get() = AppStrings(appLanguage)
+        get() = if (appLanguage == AppLanguage.VI) viStrings else enStrings
 
     fun toggleLanguage() {
         appLanguage = if (appLanguage == AppLanguage.VI) AppLanguage.EN else AppLanguage.VI
@@ -44,16 +56,18 @@ class TodoViewModel : ViewModel() {
     var notifySound by mutableStateOf(true)
     var notifySummary by mutableStateOf(false)
 
+    var systemDark by mutableStateOf(false)
+
     fun isDarkTheme(): Boolean {
-        return themeMode == ThemeMode.DARK
+        return themeMode == ThemeMode.DARK || (themeMode == ThemeMode.AUTO && systemDark)
     }
 
-    // ================== 3. QUẢN LÝ TÀI KHOẢN GOOGLE & BIỂU ĐỒ TUẦN/NGÀY ==================
+    //  3. QUẢN LÝ TÀI KHOẢN GOOGLE & BIỂU ĐỒ TUẦN/NGÀY
     var userProfile by mutableStateOf(UserProfile())
 
     fun connectGoogleAccount(inputName: String, inputEmail: String) {
-        val cleanName = inputName.ifBlank { "Minh Anh" }.trim()
-        val cleanEmail = inputEmail.ifBlank { "minhanh@gmail.com" }.trim()
+        val cleanName = inputName.ifBlank { "Minh Nhat" }.trim()
+        val cleanEmail = inputEmail.ifBlank { "minhNhat@gmail.com" }.trim()
 
         userProfile = UserProfile(
             fullName = cleanName,
@@ -116,12 +130,15 @@ class TodoViewModel : ViewModel() {
         return if (isViewingThisWeek) thisWeekStats else lastWeekStats
     }
 
-    // ================== 4. QUẢN LÝ CÔNG VIỆC & THÔNG BÁO ==================
+    //  4. QUẢN LÝ CÔNG VIỆC & THÔNG BÁO
     var searchQuery by mutableStateOf("")
     var selectedFilter by mutableStateOf<TaskCategory?>(null)
 
     val taskList = mutableStateListOf<TaskItem>()
     val notificationList = mutableStateListOf<NotificationItem>()
+    private var nextTaskId = 100
+    private var nextSubTaskId = 1000
+    private var nextNotificationId = 100
 
     init {
         loadSampleData()
@@ -175,10 +192,10 @@ class TodoViewModel : ViewModel() {
 
     fun addNewTask(title: String, note: String, category: TaskCategory, date: String, time: String, hasReminder: Boolean, priority: TaskPriority) {
         if (title.isBlank()) return
-        val newId = taskList.size + 10
+        val newId = nextTaskId++
         val newTask = TaskItem(newId, title, note, category, date, time, "Trước 15 phút", hasReminder, priority, false)
         taskList.add(0, newTask)
-        notificationList.add(0, NotificationItem(notificationList.size + 10, "Đã tạo việc mới", "$title ($date, $time)", "Vừa xong", false))
+        notificationList.add(0, NotificationItem(nextNotificationId++, "Đã tạo việc mới", "$title ($date, $time)", "Vừa xong", false))
         navigateTo(AppScreen.TASK_LIST)
     }
 
@@ -210,7 +227,7 @@ class TodoViewModel : ViewModel() {
         for (i in 0 until taskList.size) {
             val t = taskList[i]
             if (t.id == taskId) {
-                val updatedSubs = t.subTasks + SubTask(t.subTasks.size + 200, subTitle, false)
+                val updatedSubs = t.subTasks + SubTask(nextSubTaskId++, subTitle, false)
                 taskList[i] = TaskItem(t.id, t.title, t.note, t.category, t.date, t.time, t.reminderText, t.hasReminder, t.priority, t.isCompleted, updatedSubs)
                 break
             }
