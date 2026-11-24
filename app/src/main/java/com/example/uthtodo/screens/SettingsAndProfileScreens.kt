@@ -1,4 +1,3 @@
-// FILE: SettingsAndProfileScreens.kt - Màn 6 Cài đặt, 10 Hồ sơ
 package com.example.uthtodo.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -29,7 +28,7 @@ import com.example.uthtodo.navigation.goAndClearBackStack
 import com.example.uthtodo.ui.theme.AppColors
 import com.example.uthtodo.viewmodel.TodoViewModel
 
-// ===== 6. MÀN HÌNH CÀI ĐẶT (ĐỔI GIAO DIỆN) =====
+// 6. MÀN HÌNH CÀI ĐẶT (ĐỔI GIAO DIỆN)
 @Composable
 fun SettingsScreen(viewModel: TodoViewModel, navController: NavHostController) {
     val colors = AppColors(viewModel.isDarkTheme())
@@ -239,7 +238,7 @@ fun SettingSwitchRowFull(
     }
 }
 
-// ===== 10. MÀN HÌNH HỒ SƠ CÁ NHÂN =====
+//  10. MÀN HÌNH HỒ SƠ CÁ NHÂN
 @Composable
 fun ProfileScreen(viewModel: TodoViewModel, navController: NavHostController) {
     val colors = AppColors(viewModel.isDarkTheme())

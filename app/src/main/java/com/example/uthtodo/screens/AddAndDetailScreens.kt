@@ -1,4 +1,3 @@
-// FILE: AddAndDetailScreens.kt - Màn 4 Thêm việc mới, 5 Chi tiết công việc
 package com.example.uthtodo.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -33,7 +32,7 @@ import com.example.uthtodo.navigation.goToTab
 import com.example.uthtodo.ui.theme.AppColors
 import com.example.uthtodo.viewmodel.TodoViewModel
 
-// ===== 4. MÀN HÌNH THÊM VIỆC MỚI =====
+// 4. MÀN HÌNH THÊM VIỆC MỚI
 @Composable
 fun AddTaskScreen(viewModel: TodoViewModel, navController: NavHostController) {
     val colors = AppColors(viewModel.isDarkTheme())
@@ -206,7 +205,7 @@ private fun PillRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label
     }
 }
 
-// ===== 5. MÀN HÌNH CHI TIẾT CÔNG VIỆC =====
+// 5. MÀN HÌNH CHI TIẾT CÔNG VIỆC
 @Composable
 fun TaskDetailScreen(viewModel: TodoViewModel, navController: NavHostController, taskId: Int) {
     val colors = AppColors(viewModel.isDarkTheme())
@@ -216,7 +215,7 @@ fun TaskDetailScreen(viewModel: TodoViewModel, navController: NavHostController,
     val task = viewModel.getTask(taskId)
     var newSubTitle by remember { mutableStateOf("") }
 
-    // Việc vừa bị xóa: chỉ vẽ nền trống trong lúc màn đang đóng (không tự pop thêm lần nữa)
+    // Việc vừa bị xóa: chỉ vẽ nền trống trong lúc màn đang đóng
     if (task == null) {
         Box(modifier = Modifier.fillMaxSize().background(colors.background))
         return

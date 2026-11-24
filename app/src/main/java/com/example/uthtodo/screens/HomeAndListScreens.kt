@@ -1,4 +1,3 @@
-// FILE: HomeAndListScreens.kt - Màn 2 Trang chủ, 3 Danh sách, 8 Thông báo
 package com.example.uthtodo.screens
 
 import androidx.compose.foundation.background
@@ -32,7 +31,7 @@ import com.example.uthtodo.navigation.goToTab
 import com.example.uthtodo.ui.theme.AppColors
 import com.example.uthtodo.viewmodel.TodoViewModel
 
-// ===== 2. MÀN HÌNH TRANG CHỦ (7 = giao diện tối của màn này) =====
+// 2. MÀN HÌNH TRANG CHỦ
 @Composable
 fun HomeScreen(viewModel: TodoViewModel, navController: NavHostController) {
     val colors = AppColors(viewModel.isDarkTheme())
@@ -45,7 +44,7 @@ fun HomeScreen(viewModel: TodoViewModel, navController: NavHostController) {
         contentPadding = PaddingValues(top = 20.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Lời chào + chuông
+        // Lời chào, chuông
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -254,7 +253,7 @@ fun TaskCardItem(
     }
 }
 
-// ===== 3. MÀN HÌNH DANH SÁCH VIỆC =====
+//  3. MÀN HÌNH DANH SÁCH VIỆC
 @Composable
 fun TaskListScreen(viewModel: TodoViewModel, navController: NavHostController) {
     val colors = AppColors(viewModel.isDarkTheme())
@@ -347,8 +346,7 @@ fun FilterChipItem(label: String, isSelected: Boolean, colors: AppColors, onClic
         )
     }
 }
-
-// ===== 8. MÀN HÌNH THÔNG BÁO =====
+//  8. MÀN HÌNH THÔNG BÁO
 @Composable
 fun NotificationScreen(viewModel: TodoViewModel) {
     val colors = AppColors(viewModel.isDarkTheme())
