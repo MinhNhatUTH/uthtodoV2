@@ -1,5 +1,8 @@
 package com.example.uthtodo.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,313 +10,371 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.uthtodo.model.AppScreen
+import androidx.navigation.NavHostController
+import com.example.uthtodo.model.AppStrings
+import com.example.uthtodo.model.TaskCategory
+import com.example.uthtodo.navigation.Routes
+import com.example.uthtodo.navigation.goAndClearBackStack
+import com.example.uthtodo.ui.theme.AppColors
 import com.example.uthtodo.viewmodel.TodoViewModel
 import kotlinx.coroutines.delay
 
-//  1. MÀN HÌNH CHỜ (SPLASH SCREEN)
 @Composable
-fun SplashScreen(viewModel: TodoViewModel) {
-    LaunchedEffect(Unit) {
-        delay(1800)
-        viewModel.navigateTo(AppScreen.ONBOARDING)
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(viewModel.primaryColor)
-            .padding(24.dp)
+fun AppLogo(size: Dp, background: Color, accent: Color) {
+    Surface(
+        modifier = Modifier.size(size),
+        shape = RoundedCornerShape(size * 0.26f),
+        color = background,
+        shadowElevation = 6.dp
     ) {
         Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxSize().padding(size * 0.2f),
+            verticalArrangement = Arrangement.spacedBy(size * 0.08f, Alignment.CenterVertically)
         ) {
-            Surface(modifier = Modifier.size(88.dp), shape = RoundedCornerShape(24.dp), color = Color.White) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Checklist, contentDescription = null, tint = viewModel.primaryColor, modifier = Modifier.size(48.dp))
-                }
-            }
-            Spacer(modifier = Modifier.height(20.dp))
-            Text("UTH Todo", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Việc học, việc nhà – gọn gàng mỗi ngày", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
-        }
-
-        Column(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            LinearProgressIndicator(
-                progress = { 0.45f },
-                modifier = Modifier.width(100.dp).height(4.dp).clip(RoundedCornerShape(2.dp)),
-                color = Color.White,
-                trackColor = Color.White.copy(alpha = 0.3f)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Phiên bản 2.1.0", color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp)
+            LogoRow(Icons.Default.CheckCircle, accent, 1f, size)
+            LogoRow(Icons.Default.RadioButtonUnchecked, accent.copy(alpha = 0.5f), 0.7f, size)
         }
     }
 }
 
-//  2. MÀN HÌNH ONBOARDING 3 BƯỚC
 @Composable
-fun OnboardingScreen(viewModel: TodoViewModel) {
-    val step = viewModel.onboardingStep
-    val titles = listOf("Mọi việc, gọn trong một chỗ", "Chia theo Học tập và Cuộc sống", "Nhắc đúng lúc")
-    val descs = listOf(
-        "Ghi lại bài tập, việc nhà, lịch hẹn. Không còn quên việc nào.",
-        "Mỗi việc có nhóm riêng, nhìn là biết hôm nay cần lo gì.",
-        "Bật thông báo để UTH Todo nhắc bạn trước hạn chót."
-    )
+private fun LogoRow(icon: ImageVector, color: Color, barFraction: Float, size: Dp) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(size * 0.22f))
+        Spacer(modifier = Modifier.width(size * 0.05f))
+        Box(
+            modifier = Modifier
+                .width(size * 0.3f * barFraction)
+                .height(size * 0.09f)
+                .clip(RoundedCornerShape(50))
+                .background(color)
+        )
+    }
+}
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
+//  1. MÀN HÌNH SPLASH
+@Composable
+fun SplashScreen(viewModel: TodoViewModel, navController: NavHostController) {
+    val str = viewModel.strings
+    var started by remember { mutableStateOf(false) }
+    val progress by animateFloatAsState(if (started) 1f else 0f, tween(1800), label = "splash")
+
+    // Sau 1,8 giây sang Onboarding và xóa Splash khỏi lịch sử
+    LaunchedEffect(Unit) {
+        started = true
+        delay(1800)
+        navController.navigate(Routes.ONBOARDING) { popUpTo(Routes.SPLASH) { inclusive = true } }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(viewModel.primaryColor)) {
+        Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+            AppLogo(88.dp, Color.White, viewModel.primaryColor)
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("UTH") }
+                    withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append(" Todo") }
+                },
+                color = Color.White,
+                fontSize = 34.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(str.splashTagline, color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
+        }
+        Column(
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.width(90.dp).height(3.dp).clip(CircleShape),
+                color = Color.White,
+                trackColor = Color.White.copy(alpha = 0.3f)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(str.versionLabel, color = Color.White.copy(alpha = 0.9f), fontSize = 11.sp)
+        }
+    }
+}
+
+// 1a-1c. MÀN HÌNH ONBOARDING (3 bước)
+@Composable
+fun OnboardingScreen(viewModel: TodoViewModel, navController: NavHostController) {
+    val colors = AppColors(false)
+    val str = viewModel.strings
+    val primary = viewModel.primaryColor
+    var step by rememberSaveable { mutableIntStateOf(0) }
+    val lastStep = 2
+
+    BackHandler(enabled = step > 0) { step-- }
+
+    val title = listOf(str.onboardTitle1, str.onboardTitle2, str.onboardTitle3)[step]
+    val desc = listOf(str.onboardDesc1, str.onboardDesc2, str.onboardDesc3)[step]
+    val goLogin = { navController.navigate(Routes.LOGIN) { launchSingleTop = true } }
+
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(modifier = Modifier.size(32.dp), shape = RoundedCornerShape(8.dp), color = viewModel.primaryColor) {
-                    Icon(Icons.Default.Checklist, contentDescription = null, tint = Color.White, modifier = Modifier.padding(6.dp))
-                }
+                AppLogo(28.dp, primary, Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("UTH ", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("Todo", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = viewModel.primaryColor)
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("UTH ") }
+                        withStyle(SpanStyle(color = primary, fontWeight = FontWeight.Medium)) { append("Todo") }
+                    },
+                    fontSize = 16.sp
+                )
             }
-            Text("Bỏ qua", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.clickable { viewModel.navigateTo(AppScreen.LOGIN) })
+            Text(str.skip, color = Color.Gray, fontSize = 14.sp, modifier = Modifier.clickable { goLogin() })
         }
 
-        Box(
-            modifier = Modifier.size(240.dp).align(Alignment.CenterHorizontally).clip(RoundedCornerShape(32.dp)).background(Color(0xFFEEF2FF)).padding(20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            when (step) {
-                0 -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    for (i in 0..2) {
-                        Surface(shape = RoundedCornerShape(12.dp), color = Color.White, modifier = Modifier.fillMaxWidth().height(42.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
-                                Icon(if (i == 0) Icons.Default.CheckCircle else Icons.Outlined.Circle, contentDescription = null, tint = if (i == 0) viewModel.primaryColor else Color.LightGray)
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Box(modifier = Modifier.height(8.dp).fillMaxWidth(0.75f).background(Color(0xFFE0E0E0), RoundedCornerShape(4.dp)))
-                            }
-                        }
-                    }
-                }
-                1 -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Surface(shape = RoundedCornerShape(12.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Surface(color = Color(0xFFE8F0FE), shape = RoundedCornerShape(6.dp)) {
-                                Text("Học tập", color = Color(0xFF2555FF), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Box(modifier = Modifier.height(8.dp).fillMaxWidth(0.8f).background(Color(0xFFE0E0E0), RoundedCornerShape(4.dp)))
-                        }
-                    }
-                    Surface(shape = RoundedCornerShape(12.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Surface(color = Color(0xFFFEF0E6), shape = RoundedCornerShape(6.dp)) {
-                                Text("Cuộc sống", color = Color(0xFFD96B27), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Box(modifier = Modifier.height(8.dp).fillMaxWidth(0.65f).background(Color(0xFFE0E0E0), RoundedCornerShape(4.dp)))
-                        }
-                    }
-                }
-                else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(shape = CircleShape, color = Color.White, modifier = Modifier.size(72.dp), shadowElevation = 4.dp) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = viewModel.primaryColor, modifier = Modifier.size(36.dp))
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Surface(shape = RoundedCornerShape(12.dp), color = Color.White, shadowElevation = 2.dp) {
-                        Text("Ôn bài Toán lúc 19:00", fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
-                    }
-                }
-            }
-        }
-
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(titles[step], fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(descs[step], fontSize = 15.sp, color = Color.Gray, lineHeight = 22.sp)
-            Spacer(modifier = Modifier.height(20.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (i in 0..2) {
-                    Box(modifier = Modifier.height(6.dp).width(if (i == step) 20.dp else 6.dp).clip(CircleShape).background(if (i == step) viewModel.primaryColor else Color.LightGray))
-                }
-            }
-            Spacer(modifier = Modifier.height(20.dp))
-            Button(
-                onClick = {
-                    if (step < 2) viewModel.onboardingStep++ else viewModel.navigateTo(AppScreen.LOGIN)
-                },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = viewModel.primaryColor)
+        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Surface(
+                modifier = Modifier.width(170.dp).height(190.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = colors.avatar
             ) {
-                Text(if (step < 2) "Tiếp tục" else "Bắt đầu ngay", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                Box(contentAlignment = Alignment.Center) {
+                    when (step) {
+                        0 -> IllustrationChecklist(colors, primary)
+                        1 -> IllustrationGroups(colors, viewModel)
+                        else -> IllustrationReminder(colors, primary, str)
+                    }
+                }
+            }
+        }
+
+        Text(title, fontSize = 26.sp, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(desc, fontSize = 15.sp, color = Color.Gray, lineHeight = 21.sp)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for (i in 0..lastStep) {
+                Box(
+                    modifier = Modifier
+                        .width(if (i == step) 24.dp else 6.dp)
+                        .height(6.dp)
+                        .clip(CircleShape)
+                        .background(if (i == step) primary else colors.inactiveBar)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Button(
+            onClick = { if (step < lastStep) step++ else goLogin() },
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = primary)
+        ) {
+            Text(if (step < lastStep) str.continueBtn else str.startNow, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+    }
+}
+
+@Composable
+private fun IllustrationChecklist(colors: AppColors, primary: Color) {
+    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        for (i in 0..2) {
+            Surface(shape = RoundedCornerShape(10.dp), color = colors.card, modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (i == 0) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                        contentDescription = null,
+                        tint = if (i == 0) primary else colors.inactive,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.height(5.dp).weight(1f).clip(CircleShape).background(colors.inactiveBar))
+                }
             }
         }
     }
 }
 
-//  3. MÀN HÌNH ĐĂNG NHẬP GOOGLE
 @Composable
-fun LoginScreen(viewModel: TodoViewModel) {
+private fun IllustrationGroups(colors: AppColors, viewModel: TodoViewModel) {
+    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        TaskCategory.entries.forEach { cat ->
+            Surface(shape = RoundedCornerShape(10.dp), color = colors.card, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Surface(color = colors.categoryBg(cat), shape = RoundedCornerShape(5.dp)) {
+                        Text(
+                            cat.getName(viewModel.appLanguage),
+                            color = colors.categoryText(cat),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(modifier = Modifier.height(5.dp).fillMaxWidth(0.8f).clip(CircleShape).background(colors.inactiveBar))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IllustrationReminder(colors: AppColors, primary: Color, str: AppStrings) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Surface(modifier = Modifier.size(56.dp), shape = CircleShape, color = colors.card) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = primary, modifier = Modifier.size(28.dp))
+            }
+        }
+        Surface(shape = RoundedCornerShape(8.dp), color = colors.card) {
+            Text(str.onboardReminderSample, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp))
+        }
+    }
+}
+
+//  9. MÀN HÌNH ĐĂNG NHẬP (GOOGLE)
+@Composable
+fun LoginScreen(viewModel: TodoViewModel, navController: NavHostController) {
+    val colors = AppColors(false)
+    val str = viewModel.strings
+    val primary = viewModel.primaryColor
+    // Mũi tên quay lại chỉ hiện khi còn màn trước (sau Đăng xuất thì không có)
+    val canGoBack = navController.previousBackStackEntry != null
+
     if (viewModel.showGoogleLoginDialog) {
         GoogleAccountPickerDialog(
-            primaryColor = viewModel.primaryColor,
+            primaryColor = primary,
+            str = str,
             onDismiss = { viewModel.showGoogleLoginDialog = false },
             onConfirm = { name, email ->
                 viewModel.connectGoogleAccount(name, email)
-                viewModel.navigateTo(AppScreen.HOME)
+                navController.goAndClearBackStack(Routes.HOME)
             }
         )
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column {
-            IconButton(onClick = { viewModel.navigateTo(AppScreen.ONBOARDING) }) {
-                Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Quay lại")
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
+        if (canGoBack) {
+            IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.offset(x = (-12).dp)) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
             }
-            Spacer(modifier = Modifier.height(20.dp))
-            Surface(modifier = Modifier.size(76.dp), shape = RoundedCornerShape(20.dp), color = viewModel.primaryColor, shadowElevation = 6.dp) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Checklist, contentDescription = null, tint = Color.White, modifier = Modifier.size(42.dp))
-                }
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-            Text("Chào mừng đến với\nUTH Todo", fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 36.sp)
-            Spacer(modifier = Modifier.height(10.dp))
-            Text("Đăng nhập để lưu công việc và đồng bộ trên mọi thiết bị của bạn.", fontSize = 15.sp, color = Color.Gray, lineHeight = 22.sp)
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Sync, contentDescription = null, tint = viewModel.primaryColor, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Tự động sao lưu, không lo mất dữ liệu", fontSize = 14.sp)
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.PhoneIphone, contentDescription = null, tint = viewModel.primaryColor, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Dùng trên iPhone, iPad và Mac", fontSize = 14.sp)
-            }
+        } else {
+            Spacer(modifier = Modifier.height(48.dp))
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            OutlinedButton(
-                onClick = { viewModel.showGoogleLoginDialog = true },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, Color(0xFFE0E0E0))
-            ) {
-                Surface(shape = CircleShape, border = BorderStroke(1.dp, Color.LightGray), modifier = Modifier.size(24.dp), color = Color.White) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("G", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.Black)
-                    }
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Text("Tiếp tục với Google", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+        Spacer(modifier = Modifier.weight(1f))
+        AppLogo(72.dp, primary, Color.White)
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(str.welcomeTitle, fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 34.sp)
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(str.welcomeDesc, fontSize = 15.sp, color = Color.Gray, lineHeight = 21.sp)
+        Spacer(modifier = Modifier.height(20.dp))
+        LoginPoint(Icons.Default.Sync, str.loginPoint1, primary)
+        Spacer(modifier = Modifier.height(10.dp))
+        LoginPoint(Icons.Default.PhoneIphone, str.loginPoint2, primary)
+        Spacer(modifier = Modifier.weight(1.2f))
+
+        OutlinedButton(
+            onClick = { viewModel.showGoogleLoginDialog = true },
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, colors.inactiveBar)
+        ) {
+            Surface(shape = CircleShape, color = colors.pill, modifier = Modifier.size(24.dp)) {
+                Box(contentAlignment = Alignment.Center) { Text("G", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("hoặc", fontSize = 13.sp, color = Color.Gray)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Dùng thử không cần tài khoản",
-                color = viewModel.primaryColor,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 15.sp,
-                modifier = Modifier.clickable { viewModel.loginAsGuest() }
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-            Text(
-                text = "Khi tiếp tục, bạn đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư của UTH Todo.",
-                fontSize = 11.sp,
-                color = Color.Gray,
-                textAlign = TextAlign.Center,
-                lineHeight = 16.sp
-            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(str.continueGoogle, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
         }
+
+        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            HorizontalDivider(modifier = Modifier.weight(1f), color = colors.inactiveBar)
+            Text(str.orText, color = Color.Gray, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp))
+            HorizontalDivider(modifier = Modifier.weight(1f), color = colors.inactiveBar)
+        }
+
+        Text(
+            text = str.tryWithoutAccount,
+            color = primary,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 15.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    viewModel.loginAsGuest()
+                    navController.goAndClearBackStack(Routes.HOME)
+                }
+                .padding(vertical = 8.dp)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(str.termsText, fontSize = 11.sp, color = Color.Gray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
     }
 }
 
 @Composable
+private fun LoginPoint(icon: ImageVector, text: String, tint: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(text, fontSize = 13.sp, color = Color.DarkGray)
+    }
+}
+
+// Hộp thoại giả lập chọn tài khoản Google (nhập tên + Gmail)
+@Composable
 fun GoogleAccountPickerDialog(
     primaryColor: Color,
+    str: AppStrings,
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit
 ) {
-    var inputName by remember { mutableStateOf("Minh Anh") }
-    var inputEmail by remember { mutableStateOf("minhanh@gmail.com") }
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = CircleShape, color = Color(0xFFE8F0FE), modifier = Modifier.size(32.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("G", fontWeight = FontWeight.Bold, color = primaryColor)
-                    }
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Text("Kết nối tài khoản Google", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            }
-        },
+        containerColor = Color.White,
+        title = { Text(str.googlePickerTitle, fontWeight = FontWeight.Bold, color = Color.Black) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Nhập thông tin tài khoản Google của bạn để đồng bộ dữ liệu:", fontSize = 13.sp, color = Color.Gray)
                 OutlinedTextField(
-                    value = inputName,
-                    onValueChange = { inputName = it },
-                    label = { Text("Họ và tên hiển thị") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    value = name, onValueChange = { name = it }, singleLine = true,
+                    label = { Text(str.nameLabel) }, modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = inputEmail,
-                    onValueChange = { inputEmail = it },
-                    label = { Text("Địa chỉ Gmail") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    value = email, onValueChange = { email = it }, singleLine = true,
+                    label = { Text(str.emailLabel) }, modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(
-                onClick = { onConfirm(inputName, inputEmail) },
-                colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
-            ) {
-                Text("Xác nhận kết nối", color = Color.White)
+            TextButton(onClick = { onConfirm(name, email) }) {
+                Text(str.confirm, color = primaryColor, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Hủy")
-            }
+            TextButton(onClick = onDismiss) { Text(str.cancel, color = Color.Gray) }
         }
     )
 }

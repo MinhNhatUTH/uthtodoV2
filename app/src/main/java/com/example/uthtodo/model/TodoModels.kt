@@ -1,76 +1,46 @@
 package com.example.uthtodo.model
 
-import androidx.compose.ui.graphics.Color
-
-// 1. Enum định nghĩa 10 màn hình trong ứng dụng
-enum class AppScreen {
-    SPLASH, ONBOARDING, LOGIN,
-    HOME, TASK_LIST, NOTIFICATIONS, SETTINGS,
-    ADD_TASK, TASK_DETAIL, PROFILE
-}
-
-// 2. Enum ngôn ngữ (Hỗ trợ chuyển đổi Tiếng Việt <-> Tiếng Anh toàn ứng dụng)
 enum class AppLanguage(val displayName: String) {
     VI("Tiếng Việt"),
     EN("English")
 }
 
-// 3. Enum phân nhóm công việc: Học tập & Cuộc sống
-enum class TaskCategory(
-    private val nameVi: String,
-    private val nameEn: String,
-    val badgeColor: Color,
-    val textColor: Color,
-    val darkBadgeColor: Color,   // màu nền badge khi giao diện Tối
-    val darkTextColor: Color     // màu chữ badge khi giao diện Tối
-) {
-    STUDY("Học tập", "Study", Color(0xFFE8F0FE), Color(0xFF2555FF), Color(0xFF1E2942), Color(0xFF6C8CFF)),
-    LIFE("Cuộc sống", "Life", Color(0xFFFEF0E6), Color(0xFFD96B27), Color(0xFF38261A), Color(0xFFF0904F));
+enum class TaskCategory(private val nameVi: String, private val nameEn: String) {
+    STUDY("Học tập", "Study"),
+    LIFE("Cuộc sống", "Life");
 
-    fun getName(lang: AppLanguage): String {
-        return if (lang == AppLanguage.VI) nameVi else nameEn
-    }
-
-    fun badgeBg(isDark: Boolean): Color = if (isDark) darkBadgeColor else badgeColor
-    fun badgeText(isDark: Boolean): Color = if (isDark) darkTextColor else textColor
+    fun getName(lang: AppLanguage): String = if (lang == AppLanguage.VI) nameVi else nameEn
 }
 
-// 4. Enum mức độ ưu tiên: Thấp, Vừa, Cao
 enum class TaskPriority(private val nameVi: String, private val nameEn: String) {
     LOW("Thấp", "Low"),
     MEDIUM("Vừa", "Medium"),
     HIGH("Cao", "High");
 
-    fun getName(lang: AppLanguage): String {
-        return if (lang == AppLanguage.VI) nameVi else nameEn
-    }
+    fun getName(lang: AppLanguage): String = if (lang == AppLanguage.VI) nameVi else nameEn
 }
 
-// 5. Enum chế độ giao diện: Sáng, Tối, Tự động
 enum class ThemeMode(private val nameVi: String, private val nameEn: String) {
     LIGHT("Sáng", "Light"),
     DARK("Tối", "Dark"),
     AUTO("Tự động", "Auto");
 
-    fun getName(lang: AppLanguage): String {
-        return if (lang == AppLanguage.VI) nameVi else nameEn
-    }
+    fun getName(lang: AppLanguage): String = if (lang == AppLanguage.VI) nameVi else nameEn
 }
 
-// 6. Class Việc nhỏ (SubTask) nằm trong một công việc lớn
-class SubTask(
+//  2. Công việc
+data class SubTask(
     val id: Int,
     val title: String,
     val isDone: Boolean = false
 )
 
-// 7. Class Công việc chính (TaskItem) đóng gói thuộc tính và phương thức tính tiến độ
-class TaskItem(
+data class TaskItem(
     val id: Int,
     val title: String,
     val note: String = "",
     val category: TaskCategory = TaskCategory.STUDY,
-    val date: String = "Hôm nay",
+    val date: String = TODAY,
     val time: String = "09:00",
     val reminderText: String = "Trước 15 phút",
     val hasReminder: Boolean = true,
@@ -78,36 +48,33 @@ class TaskItem(
     val isCompleted: Boolean = false,
     val subTasks: List<SubTask> = emptyList()
 ) {
-    // Phương thức đếm số việc nhỏ đã hoàn thành
-    fun countCompletedSubTasks(): Int {
-        var count = 0
-        for (sub in subTasks) {
-            if (sub.isDone) count++
-        }
-        return count
-    }
+    val isToday: Boolean get() = date == TODAY
 
-    // Phương thức tính phần trăm tiến độ việc nhỏ (0.0f -> 1.0f)
+    fun countCompletedSubTasks(): Int = subTasks.count { it.isDone }
+
+    // Tiến độ việc nhỏ từ 0.0 đến 1.0
     fun calculateSubTaskProgress(): Float {
         if (subTasks.isEmpty()) return 0f
-        return countCompletedSubTasks().toFloat() / subTasks.size.toFloat()
+        return countCompletedSubTasks().toFloat() / subTasks.size
+    }
+
+    companion object {
+        const val TODAY = "Hôm nay"
     }
 }
 
-// 8. Class thống kê từng ngày trong tuần (Dùng cho biểu đồ màn Hồ sơ)
-class DayStat(
-    private val dayLabelVi: String,
-    private val dayLabelEn: String,
+//  3. Thống kê, thông báo, hồ sơ
+// Thống kê một ngày cho biểu đồ tuần
+data class DayStat(
+    private val labelVi: String,
+    private val labelEn: String,
     val completedTasks: Int,
     val totalTasks: Int
 ) {
-    fun getLabel(lang: AppLanguage): String {
-        return if (lang == AppLanguage.VI) dayLabelVi else dayLabelEn
-    }
+    fun getLabel(lang: AppLanguage): String = if (lang == AppLanguage.VI) labelVi else labelEn
 }
 
-// 9. Class Thông báo (Hiển thị ở tab Thông báo)
-class NotificationItem(
+data class NotificationItem(
     val id: Int,
     val title: String,
     val message: String,
@@ -115,88 +82,152 @@ class NotificationItem(
     val isRead: Boolean = false
 )
 
-// 10. Class Hồ sơ người dùng (Cập nhật linh hoạt khi kết nối Google)
-class UserProfile(
-    val fullName: String = "Minh Nhat",
-    val email: String = "minhNhat@gmail.com",
+data class UserProfile(
+    val fullName: String = "Minh Anh",
+    val email: String = "minhanh@gmail.com",
     val isGoogleLinked: Boolean = true,
     val completedCount: Int = 128,
     val streakDays: Int = 12,
     val onTimePercent: Int = 86,
     val lastSyncTime: String = "Vừa xong"
 ) {
-    // Phương thức tự động lấy chữ cái đầu làm Avatar (VD: "Minh Anh" -> "MA")
+    // Lấy chữ cái đầu làm avatar, ví dụ "Minh Nhat" -> "MN"
     fun getShortName(): String {
         val parts = fullName.trim().split(" ").filter { it.isNotEmpty() }
         if (parts.isEmpty()) return "U"
         if (parts.size == 1) return parts[0].take(2).uppercase()
-        val firstChar = parts.first().first().uppercaseChar()
-        val lastChar = parts.last().first().uppercaseChar()
-        return "$firstChar$lastChar"
+        return "${parts.first().first().uppercaseChar()}${parts.last().first().uppercaseChar()}"
     }
 }
 
-// 11. Class Từ điển Đa ngôn ngữ cho toàn bộ ứng dụng
+//  4. Chữ hiển thị theo ngôn ngữ
 class AppStrings(lang: AppLanguage) {
     val isVi = (lang == AppLanguage.VI)
+    private fun t(vi: String, en: String) = if (isVi) vi else en
 
-    // Thanh điều hướng 5 nút
-    val navHome = if (isVi) "Trang chủ" else "Home"
-    val navList = if (isVi) "Danh sách" else "Tasks"
-    val navNotify = if (isVi) "Thông báo" else "Alerts"
-    val navSettings = if (isVi) "Cài đặt" else "Settings"
+    // Thanh dưới
+    val navHome = t("Trang chủ", "Home")
+    val navList = t("Danh sách", "Tasks")
+    val navNotify = t("Thông báo", "Alerts")
+    val navSettings = t("Cài đặt", "Settings")
+    val addTaskDesc = t("Thêm việc mới", "Add new task")
 
-    // Trang chủ & Danh sách
-    val dateSample = if (isVi) "Thứ Ba, 20 tháng 10" else "Tuesday, Oct 20"
-    val greetingPrefix = if (isVi) "Chào" else "Hello"
-    val todayProgress = if (isVi) "Tiến độ hôm nay" else "Today's Progress"
-    val tasksUnit = if (isVi) "việc" else "tasks"
-    val startSmallHint = if (isVi) "Bắt đầu từ việc nhỏ nhất nhé." else "Start with the smallest task."
-    val remainingTasks = if (isVi) "việc còn lại" else "tasks left"
-    val todayTasksTitle = if (isVi) "Việc hôm nay" else "Today's Tasks"
-    val seeAll = if (isVi) "Xem tất cả" else "See all"
-    val searchPlaceholder = if (isVi) "Tìm công việc" else "Search tasks..."
-    val filterAll = if (isVi) "Tất cả" else "All"
-    val sectionTodo = if (isVi) "CẦN LÀM" else "TO DO"
-    val sectionDone = if (isVi) "ĐÃ XONG" else "COMPLETED"
-    val urgentBadge = if (isVi) "Gấp" else "Urgent"
-    val unfinishedTasks = if (isVi) "việc chưa xong" else "tasks to do"
+    // Chung
+    val skip = t("Bỏ qua", "Skip")
+    val continueBtn = t("Tiếp tục", "Continue")
+    val cancel = t("Hủy", "Cancel")
+    val confirm = t("Xác nhận", "Confirm")
+    val save = t("Lưu", "Save")
+    val justNow = t("Vừa xong", "Just now")
+    val notSynced = t("Chưa đồng bộ", "Not synced")
 
-    // Chi tiết công việc
-    val markDone = if (isVi) "Đánh dấu hoàn thành" else "Mark as done"
-    val markUndone = if (isVi) "Đánh dấu chưa xong" else "Mark as not done"
-    val deleteTask = if (isVi) "Xóa công việc" else "Delete task"
+    // 1. Splash, 2. Onboarding
+    val splashTagline = t("Việc học, việc nhà — gọn gàng mỗi ngày", "Study, home — neat every day")
+    val versionLabel = t("Phiên bản 2.1.0", "Version 2.1.0")
+    val startNow = t("Bắt đầu ngay", "Get started")
+    val onboardTitle1 = t("Mọi việc, gọn trong một chỗ", "Everything in one place")
+    val onboardDesc1 = t("Ghi lại bài tập, việc nhà, lịch hẹn. Không còn quên việc nào.", "Note down homework, chores, appointments. Never forget a thing.")
+    val onboardTitle2 = t("Chia theo Học tập và Cuộc sống", "Split into Study and Life")
+    val onboardDesc2 = t("Mỗi việc có nhóm riêng, nhìn là biết hôm nay cần lo gì.", "Each task has its own group, see at a glance what to do today.")
+    val onboardTitle3 = t("Nhắc đúng lúc", "Reminders on time")
+    val onboardDesc3 = t("Bật thông báo để UTH Todo nhắc bạn trước hạn chót.", "Turn on notifications so UTH Todo reminds you before deadlines.")
+    val onboardReminderSample = t("Ôn bài Toán lúc 19:00", "Math review at 19:00")
+
+    // 3. Đăng nhập
+    val welcomeTitle = t("Chào mừng đến với UTH Todo", "Welcome to UTH Todo")
+    val welcomeDesc = t("Đăng nhập để lưu công việc và đồng bộ trên mọi thiết bị của bạn.", "Sign in to save your tasks and sync across all your devices.")
+    val loginPoint1 = t("Tự động sao lưu, không lo mất dữ liệu", "Automatic backup, never lose data")
+    val loginPoint2 = t("Dùng trên iPhone, iPad và Mac", "Works on iPhone, iPad and Mac")
+    val continueGoogle = t("Tiếp tục với Google", "Continue with Google")
+    val orText = t("hoặc", "or")
+    val tryWithoutAccount = t("Dùng thử không cần tài khoản", "Try without an account")
+    val termsText = t("Khi tiếp tục, bạn đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư của UTH Todo.", "By continuing, you agree to the Terms of Use and Privacy Policy of UTH Todo.")
+    val googlePickerTitle = t("Chọn tài khoản Google", "Choose Google account")
+    val nameLabel = t("Tên hiển thị", "Display name")
+    val emailLabel = "Gmail"
+    val guestName = "UTH Guest"
+    val guestEmail = t("Chưa liên kết tài khoản Google", "Google account not linked")
+    val loggedOutName = t("Khách", "Guest")
+    val loggedOutEmail = t("Chưa kết nối email", "No email connected")
+
+    // 4-5. Trang chủ và Danh sách
+    val dateSample = t("Thứ Ba, 20 tháng 10", "Tuesday, Oct 20")
+    val greetingPrefix = t("Chào", "Hello")
+    val todayProgress = t("Tiến độ hôm nay", "Today's Progress")
+    val tasksUnit = t("việc", "tasks")
+    val startSmallHint = t("Bắt đầu từ việc nhỏ nhất nhé.", "Start with the smallest task.")
+    val remainingTasks = t("việc còn lại", "tasks left")
+    val todayTasksTitle = t("Việc hôm nay", "Today's Tasks")
+    val seeAll = t("Xem tất cả", "See all")
+    val searchPlaceholder = t("Tìm công việc", "Search tasks...")
+    val filterAll = t("Tất cả", "All")
+    val sectionTodo = t("CẦN LÀM", "TO DO")
+    val sectionDone = t("ĐÃ XONG", "COMPLETED")
+    val urgentBadge = t("Gấp", "Urgent")
+    val unfinishedTasks = t("việc chưa xong", "tasks to do")
+
+    // 6. Thông báo
+    val markAllRead = t("Đánh dấu đã đọc", "Mark all read")
+    val createdTitle = t("Đã tạo việc mới", "New task created")
+
+    // 7. Cài đặt
+    val sectionAppearance = t("GIAO DIỆN", "APPEARANCE")
+    val primaryColorLabel = t("Màu chủ đạo", "Primary Color")
+    val fontSizeLabel = t("Cỡ chữ", "Font Size")
+    val sectionNotification = t("THÔNG BÁO", "NOTIFICATIONS")
+    val remindTitle = t("Nhắc việc", "Task Reminder")
+    val remindSub = t("Báo trước hạn chót 15 phút", "Notify 15 mins before deadline")
+    val soundTitle = t("Âm thanh", "Sound")
+    val soundSub = t("Phát âm khi có thông báo", "Play sound on notification")
+    val summaryTitle = t("Tổng kết cuối ngày", "Daily Summary")
+    val summarySub = t("Gửi lúc 21:00 mỗi tối", "Sent at 21:00 every night")
+    val sectionGeneral = t("CHUNG", "GENERAL")
+    val languageLabel = t("Ngôn ngữ", "Language")
+
+    // 8. Thêm việc mới
+    val newTask = t("Việc mới", "New Task")
+    val taskTitleLabel = t("Tên công việc", "Task title")
+    val noteLabel = t("Ghi chú", "Note")
+    val notePlaceholder = t("Thêm ghi chú (không bắt buộc)", "Add note (optional)")
+    val categoryLabel = t("Nhóm", "Category")
+    val dateLabel = t("Ngày", "Date")
+    val timeLabel = t("Giờ", "Time")
+    val remindMe = t("Nhắc tôi", "Remind me")
+    val remind15 = t("Trước 15 phút", "15 mins before")
+    val priorityLabel = t("Mức ưu tiên", "Priority")
+    val saveTask = t("Lưu công việc", "Save Task")
+
+    // 9. Chi tiết công việc
+    val deadline = t("Hạn chót", "Deadline")
+    val reminder = t("Nhắc nhở", "Reminder")
+    val reminderOff = t("Tắt", "Off")
+    val repeat = t("Lặp lại", "Repeat")
+    val repeatNone = t("Không", "None")
+    val notes = t("Ghi chú", "Notes")
+    val noNotes = t("Không có ghi chú.", "No notes.")
+    val subtasks = t("Việc nhỏ", "Subtasks")
+    val addSubtask = t("Thêm việc nhỏ", "Add subtask")
+    val addBtn = t("Thêm", "Add")
+    val markDone = t("Đánh dấu hoàn thành", "Mark as done")
+    val markUndone = t("Đánh dấu chưa xong", "Mark as not done")
+    val deleteTask = t("Xóa công việc", "Delete task")
     fun priorityBadge(priorityName: String): String =
         if (isVi) "Ưu tiên ${priorityName.lowercase()}" else "$priorityName priority"
 
-    // Cài đặt
-    val sectionAppearance = if (isVi) "GIAO DIỆN" else "APPEARANCE"
-    val primaryColorLabel = if (isVi) "Màu chủ đạo" else "Primary Color"
-    val fontSizeLabel = if (isVi) "Cỡ chữ" else "Font Size"
-    val sectionNotification = if (isVi) "THÔNG BÁO" else "NOTIFICATIONS"
-    val remindTitle = if (isVi) "Nhắc việc" else "Task Reminder"
-    val remindSub = if (isVi) "Báo trước hạn chót 15 phút" else "Notify 15 mins before deadline"
-    val soundTitle = if (isVi) "Âm thanh" else "Sound"
-    val soundSub = if (isVi) "Phát âm khi có thông báo" else "Play sound on notification"
-    val summaryTitle = if (isVi) "Tổng kết cuối ngày" else "Daily Summary"
-    val summarySub = if (isVi) "Gửi lúc 21:00 mỗi tối" else "Sent at 21:00 every night"
-    val sectionGeneral = if (isVi) "CHUNG" else "GENERAL"
-    val languageLabel = if (isVi) "Ngôn ngữ" else "Language"
-
-    // Hồ sơ
-    val profileTitle = if (isVi) "Hồ sơ" else "Profile"
-    val editBtn = if (isVi) "Sửa" else "Edit"
-    val googleLinkedText = if (isVi) "Đã liên kết tài khoản Google" else "Google Account Linked"
-    val googleUnlinkedText = if (isVi) "Chưa liên kết Google (Bấm để kết nối)" else "Not linked to Google (Tap to connect)"
-    val statDone = if (isVi) "Việc đã xong" else "Completed"
-    val statStreak = if (isVi) "Chuỗi liên tiếp" else "Day Streak"
-    val statOnTime = if (isVi) "Đúng hạn" else "On Time"
-    val thisWeek = if (isVi) "Tuần này" else "This Week"
-    val lastWeek = if (isVi) "Tuần trước" else "Last Week"
-    val syncData = if (isVi) "Đồng bộ dữ liệu" else "Sync Data"
-    val privacyPolicy = if (isVi) "Quyền riêng tư" else "Privacy Policy"
-    val logoutBtn = if (isVi) "Đăng xuất" else "Log Out"
-    val daysUnit = if (isVi) "ngày" else "days"
+    // 10. Hồ sơ
+    val profileTitle = t("Hồ sơ", "Profile")
+    val editBtn = t("Sửa", "Edit")
+    val googleLinkedText = t("Đã liên kết tài khoản Google", "Google Account Linked")
+    val googleUnlinkedText = t("Chưa liên kết Google (Bấm để kết nối)", "Not linked to Google (Tap to connect)")
+    val statDone = t("Việc đã xong", "Completed")
+    val statStreak = t("Chuỗi liên tiếp", "Day Streak")
+    val statOnTime = t("Đúng hạn", "On Time")
+    val thisWeek = t("Tuần này", "This Week")
+    val lastWeek = t("Tuần trước", "Last Week")
+    val syncData = t("Đồng bộ dữ liệu", "Sync Data")
+    val privacyPolicy = t("Quyền riêng tư", "Privacy Policy")
+    val logoutBtn = t("Đăng xuất", "Log Out")
+    val daysUnit = t("ngày", "days")
     fun dayProgress(dayLabel: String, done: Int, total: Int): String =
         if (isVi) "Ngày $dayLabel: Đã xong $done/$total công việc" else "$dayLabel: $done/$total tasks done"
 }
